@@ -1,0 +1,5 @@
+form {
+    background-color: red;
+    display: flex;
+    flex-direction: column;
+}

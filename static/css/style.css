@@ -1,0 +1,61 @@
+:root {
+    --primary-color: black;
+    --secondary-color: #28a745;
+    --background-color: #f4f4f4;
+    --text-color: #333;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: var();
+    margin: 0;
+    padding: 0;
+    color: var(--primary-color);
+}
+
+h1 {
+    text-align: center;
+    color: var(--primary-color);
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    width: 400px;
+    margin: 0 auto;
+    background: white;
+    padding: 20px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+}
+
+input, select, button {
+    margin-bottom: 15px;
+    padding: 10px;
+    font-size: 16px;
+    border-radius: 5px;
+    border: 1px solid var(--background-color);
+}
+
+button {
+    background-color: var(--secondary-color);
+    color: var(--background-color);
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: var(--secondary-color);
+}
+
+#qr-result, #scan-result {
+    margin: 20px auto;
+    width: 80%;
+    padding: 15px;
+    background: var(--background-color);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+}
+
+h3 {
+    color:  var(--text-color);
+}

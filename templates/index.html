@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generate & Scan Tiket Konser</title>
+    <!-- link to css -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Pustaka html5-qrcode lokal -->
+    <script src="{{ url_for('static', filename='html5-qrcode-master/minified/html5-qrcode.min.js') }}"></script>
+</head>
+<body>
+    <h1>Tiket Konser: Generate & Scan QR Code</h1>
+
+    <!-- BAGIAN INPUT DATA PEMESANAN -->
+    <h2>Input Data Tiket</h2>
+    <form id="generate-form">
+        <input type="text" name="nama" placeholder="Nama Anda" required>
+        <input type="email" name="email" placeholder="Email Anda" required>
+        <input type="text" name="no_hp" placeholder="No HP Anda" required>
+        <label for="tempat_duduk">Pilih Tempat Duduk:</label>
+        <select name="tempat_duduk" id="tempat_duduk" required>
+            <option value="Tengah">Tengah</option>
+            <option value="Depan">Depan</option>
+            <option value="Balkon">Balkon</option>
+        </select>
+        <input type="number" name="jumlah_tiket" placeholder="Jumlah Tiket" min="1" required>
+        <button type="submit">Generate Tiket</button>
+    </form>
+
+    <div id="qr-result">
+        <h3>Detail Tiket:</h3>
+        <div id="tickets-container"></div>
+    </div>
+
+    <!-- BAGIAN SCAN QR CODE -->
+    <h2>Scan QR Code dari Gambar</h2>
+    <form id="file-form">
+        <label for="qr-file">Pilih Gambar QR Code:</label>
+        <input type="file" id="qr-file" accept="image/*">
+    </form>
+    <div id="scan-result">
+        <h3>Hasil Dekripsi:</h3>
+        <p id="cipher-result" style="font-weight: bold; color: blue;"></p>
+        <p id="decrypted-result" style="font-weight: bold; color: green;"></p>
+        <p id="ticket-info" style="font-weight: bold; color: black;"></p>
+    </div>
+
+    <!-- Div untuk html5-qrcode (hidden, hanya untuk scan file) -->
+    <div id="reader" style="display: none;"></div>
+
+    <script>
+        // ==== BAGIAN GENERATE QR CODE ====
+        document.getElementById('generate-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const jumlahTiket = parseInt(formData.get('jumlah_tiket'));
+            const ticketsContainer = document.getElementById('tickets-container');
+            ticketsContainer.innerHTML = ""; // Kosongkan kontainer
+
+            try {
+                const response = await fetch('/generate', { method: 'POST', body: formData });
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    result.tickets.forEach((ticket, index) => {
+                        const ticketDiv = document.createElement('div');
+                        ticketDiv.style.marginBottom = "20px";
+                        ticketDiv.innerHTML = `
+                            <h4>ID Tiket ${index + 1}: ${ticket.id_tiket}</h4>
+                            <p>Nama: ${formData.get('nama')}</p>
+                            <p>Email: ${formData.get('email')}</p>
+                            <p>No HP: ${formData.get('no_hp')}</p>
+                            <p>Tempat Duduk: ${formData.get('tempat_duduk')}</p>
+                            <p>Tanggal Pemesanan: ${new Date().toLocaleString()}</p>
+                            <img src="data:image/png;base64,${ticket.qr_image}" alt="QR Code Tiket ${index + 1}">
+                        `;
+                        ticketsContainer.appendChild(ticketDiv);
+                    });
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                console.error("Error saat generate QR Code:", error);
+            }
+        };
+
+        // ==== BAGIAN SCAN QR CODE DARI FILE ====
+        document.getElementById('qr-file').addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const html5QrCode = new Html5Qrcode("reader");
+            html5QrCode.scanFile(file, false)
+                .then(decodedText => {
+                    const cleanedData = decodedText.trim();
+                    console.log("Data QR Code terenkripsi:", cleanedData);
+
+                    // Kirim data ke backend untuk dekripsi
+                    fetch('/decrypt', {
+                        method: 'POST',
+                        body: new URLSearchParams({ 'encrypted_data': cleanedData }),
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        console.log("Respons dari server:", result);
+                        if (result.status === 'success') {
+                            document.getElementById('cipher-result').innerText = "Ciphertext: " + cleanedData;
+                            document.getElementById('decrypted-result').innerText = "Plaintext: " + result.decrypted_data;
+                            document.getElementById('ticket-info').innerText = "Nama: " + result.ticket_data.nama +
+                                "\nEmail: " + result.ticket_data.email +
+                                "\nNo HP: " + result.ticket_data.no_hp +
+                                "\nTempat Duduk: " + result.ticket_data.tempat_duduk +
+                                "\nTanggal Pemesanan: " + result.ticket_data.tanggal_pesan;
+                        } else {
+                            document.getElementById('scan-result').innerText = "Error: " + result.message;
+                        }
+                    })
+                    .catch(err => {
+                        console.error("Error fetch:", err);
+                        document.getElementById('scan-result').innerText = "Error: " + err;
+                    });
+                })
+                .catch(err => {
+                    console.error("Error membaca QR Code:", err);
+                    document.getElementById('scan-result').innerText = "Gagal membaca QR Code: " + err;
+                });
+        });
+    </script>
+</body>
+</html>
