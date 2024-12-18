@@ -85,7 +85,7 @@ def generate_qr():
             encrypted_data = encrypt_data(id_tiket)
 
             # Generate QR Code
-            qr = qrcode.QRCode(box_size=10, border=4)
+            qr = qrcode.QRCode(box_size=10, border=0)
             qr.add_data(encrypted_data)
             qr.make(fit=True)
             img = qr.make_image(fill_color="black", back_color="white")
